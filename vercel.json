@@ -4,12 +4,80 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "css/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "viewCart/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "checkOut/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "signing/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "aboutUs/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "confirmation/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "server.js"
+    },
+    {
+      "src": "^/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "^/css/(.*)",
+      "dest": "/css/$1"
+    },
+    {
+      "src": "^/view-cart",
+      "dest": "/viewCart/viewCart.html"
+    },
+    {
+      "src": "^/checkout",
+      "dest": "/checkOut/checkOut.html"
+    },
+    {
+      "src": "^/about-us",
+      "dest": "/aboutUs/aboutUs.html"
+    },
+    {
+      "src": "^/confirm",
+      "dest": "/confirmation/confirm.html"
+    },
+    {
+      "src": "^/browse-products",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }

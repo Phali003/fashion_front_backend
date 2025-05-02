@@ -7,6 +7,9 @@ const helmet = require("helmet");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
+// Add Vercel detection
+const isVercel = process.env.VERCEL === '1';
+
 // Import routes and database connection after setting DEBUG_URL
 const { testConnection } = require("./config/database");
 const authRoutes = require("./routes/auth");
@@ -25,10 +28,11 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
+        defaultSrc: ["'self'", "*.vercel.app"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/"],
-        imgSrc: ["'self'", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/", "https://cdnjs.cloudflare.com"],
+        imgSrc: ["'self'", "data:", "*.vercel.app"],
+        connectSrc: ["'self'", "*.vercel.app"],
       },
     },
   })
@@ -268,36 +272,45 @@ app.use((err, req, res, next) => {
 });
 
 const startServer = async () => {
-  let retries = 5;
-  
-  while (retries) {
-    try {
-      const connected = await testConnection();
-      if (!connected) {
-        throw new Error("Database connection test failed");
+  try {
+    // Only try database connection and start server in non-Vercel environments
+    if (process.env.VERCEL !== '1') {
+      let retries = 5;
+      while (retries) {
+        try {
+          const connected = await testConnection();
+          if (!connected) {
+            throw new Error("Database connection test failed");
+          }
+          break;
+        } catch (error) {
+          console.error(`Database connection attempt failed (${retries} retries left):`, error);
+          retries -= 1;
+          if (!retries) {
+            console.error("Failed to connect to MySQL database after multiple attempts");
+            process.exit(1);
+          }
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
       }
-      
+
+      // Add strict routing settings
       app.set("strict routing", true);
       app.set("case sensitive routing", true);
 
+      // Only start listening in non-Vercel environments
       app.listen(PORT, () => {
         console.log(
-          `Server running in ${
-            process.env.NODE_ENV || "development"
-          } mode on port ${PORT}`
+          `Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`
         );
       });
-      
-      break; // Successfully connected and started server
-    } catch (error) {
-      console.error(`Database connection attempt failed (${retries} retries left):`, error);
-      retries -= 1;
-      if (!retries) {
-        console.error("Failed to connect to MySQL database after multiple attempts");
-        process.exit(1);
-      }
-      // Wait 5 seconds before retrying
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    } else {
+      console.log('Server initialized in Vercel environment');
+    }
+  } catch (error) {
+    console.error('Server startup error:', error);
+    if (process.env.VERCEL !== '1') {
+      process.exit(1);
     }
   }
 };
@@ -313,4 +326,10 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
-startServer();
+// Only start the server in non-Vercel environments
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+// Export the app for Vercel
+module.exports = app;

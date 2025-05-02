@@ -17,26 +17,17 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 3306,
   
-  // Serverless optimizations
+  // Essential serverless optimizations
   waitForConnections: true,
-  connectionLimit: process.env.NODE_ENV === 'production' ? 5 : 10, // Reduced for serverless
+  connectionLimit: process.env.NODE_ENV === 'production' ? 5 : 10,
   queueLimit: 0,
-  enableKeepAlive: process.env.NODE_ENV !== 'production', // Disabled for serverless
-  keepAliveInitialDelay: process.env.NODE_ENV === 'production' ? 30000 : 0,
-  
-  // Timeout configurations (shorter for serverless)
-  connectTimeout: 20000, // 20 seconds
-  acquireTimeout: 20000, // 20 seconds
-  timeout: 30000, // 30 seconds
   
   // SSL configuration for production cloud databases
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: true
   } : undefined,
   
-  // Performance optimizations
-  debug: false, // Disable debug for production
-  trace: false, // Disable trace for production
+  // Basic configurations
   multipleStatements: false,
   dateStrings: true,
   supportBigNumbers: true,
@@ -59,12 +50,12 @@ pool.on('error', (err) => {
 
 // Test the connection using pool
 const testConnection = async () => {
-  // Check if we're in development mode and should use a mock connection
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
+  // Check if we should use a mock connection (development or Vercel testing)
+  if (process.env.MOCK_DB === 'true') {
     console.warn('=================================================================');
-    console.warn('WARNING: Using mock database connection for development purposes.');
+    console.warn('WARNING: Using mock database connection for testing purposes.');
     console.warn('This is intended for testing the server only, not for data operations.');
-    console.warn('Set MOCK_DB=false in .env to use a real database connection.');
+    console.warn('Environment: ' + (process.env.NODE_ENV || 'development'));
     console.warn('=================================================================');
     return true;
   }
@@ -102,6 +93,12 @@ const testConnection = async () => {
 
 // Test with direct connection (not using pool)
 const testDirectConnection = async () => {
+  // Check if we're using mock database
+  if (process.env.MOCK_DB === 'true') {
+    console.warn('MOCK DB: Direct connection test skipped');
+    return true;
+  }
+  
   console.log('Testing direct connection to database...');
   console.log('Connection params:', {
     host: process.env.DB_HOST,
@@ -164,7 +161,7 @@ const testDirectConnection = async () => {
 // Execute query with enhanced error handling
 const query = async (sql, params) => {
   // Check if we're using mock database
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
+  if (process.env.MOCK_DB === 'true') {
     console.warn('MOCK DB: Query executed:', sql);
     return []; // Return empty array as mock result
   }
@@ -242,7 +239,7 @@ const query = async (sql, params) => {
 // Begin transaction
 const beginTransaction = async () => {
   // Check if we're using mock database
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
+  if (process.env.MOCK_DB === 'true') {
     console.warn('MOCK DB: Transaction started');
     return { mockTransaction: true }; // Return mock connection object
   }
@@ -255,7 +252,7 @@ const beginTransaction = async () => {
 // Commit transaction
 const commitTransaction = async (connection) => {
   // Check if we're using mock database
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true' && connection.mockTransaction) {
+  if (process.env.MOCK_DB === 'true' && connection?.mockTransaction) {
     console.warn('MOCK DB: Transaction committed');
     return;
   }
@@ -267,7 +264,7 @@ const commitTransaction = async (connection) => {
 // Rollback transaction
 const rollbackTransaction = async (connection) => {
   // Check if we're using mock database
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true' && connection.mockTransaction) {
+  if (process.env.MOCK_DB === 'true' && connection?.mockTransaction) {
     console.warn('MOCK DB: Transaction rolled back');
     return;
   }
@@ -278,6 +275,12 @@ const rollbackTransaction = async (connection) => {
 
 // Direct query function (uses a new connection each time instead of pool)
 const directQuery = async (sql, params) => {
+  // Check if we're using mock database
+  if (process.env.MOCK_DB === 'true') {
+    console.warn('MOCK DB: Direct query executed:', sql);
+    return []; // Return empty array as mock result
+  }
+  
   console.log('==========================================');
   console.log('DIRECT QUERY EXECUTION START');
   console.log('==========================================');
