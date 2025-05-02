@@ -242,7 +242,7 @@ function renderOrderSummary() {
     const emptyMessage = document.createElement("li");
     emptyMessage.className = "checkout-item empty-cart";
     emptyMessage.innerHTML = `
-      <span class="item-name">Your cart is currently empty. <a href="../index.html" style="color: #3a6ea5; text-decoration: underline;">Browse our menu</a> to add items.</span>
+      <span class="item-name">Your cart is currently empty. <a href="/" style="color: #3a6ea5; text-decoration: underline;">Browse our menu</a> to add items.</span>
     `;
     checkOutList.appendChild(emptyMessage);
 
@@ -257,7 +257,7 @@ function renderOrderSummary() {
       let menuButton = document.querySelector(".empty-cart-button");
       if (!menuButton) {
         menuButton = document.createElement("a");
-        menuButton.href = "../index.html";
+        menuButton.href = "/";
         menuButton.style.maxWidth = "300px";
         menuButton.style.margin = "1rem auto";
         menuButton.style.display = "block";
@@ -976,11 +976,11 @@ function validateInEmail(signInEmail) {
 
 function validateFullName(fullName) {
   // Normalize and trim extra spaces
-  const trimmedName = fullName.trim().replace(/\s+/g, ' ');
-  
+  const trimmedName = fullName.trim().replace(/\s+/g, " ");
+
   // Split into separate name parts
-  const nameParts = trimmedName.split(' ');
-  
+  const nameParts = trimmedName.split(" ");
+
   // Check at least two name parts (e.g., first and last name)
   if (nameParts.length < 2) {
     showFieldError(
@@ -989,10 +989,11 @@ function validateFullName(fullName) {
     );
     return false;
   }
-  
+
   // Validate each name part
-  const namePartRegex = /^[A-Za-zÀ-ÿ]([A-Za-zÀ-ÿ]|[-'](?=[A-Za-zÀ-ÿ]))*[A-Za-zÀ-ÿ]$/;
-  
+  const namePartRegex =
+    /^[A-Za-zÀ-ÿ]([A-Za-zÀ-ÿ]|[-'](?=[A-Za-zÀ-ÿ]))*[A-Za-zÀ-ÿ]$/;
+
   for (const part of nameParts) {
     if (part.length < 2) {
       showFieldError(
@@ -1001,17 +1002,17 @@ function validateFullName(fullName) {
       );
       return false;
     }
-    
+
     if (!namePartRegex.test(part)) {
       showFieldError(
         "signInUsername",
         "Names can only contain letters, hyphens (-), and apostrophes ('). " +
-        "Numbers and other special characters are not allowed."
+          "Numbers and other special characters are not allowed."
       );
       return false;
     }
   }
-  
+
   // Clear any previous errors if validation passes
   clearFieldError("signInUsername");
   return true;

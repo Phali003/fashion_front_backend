@@ -49,11 +49,12 @@ if (process.env.NODE_ENV === "production") {
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.FRONTEND_URL
-        : "http://localhost:3000",
+    origin: process.env.NODE_ENV === "production"
+      ? [process.env.FRONTEND_URL, /\.vercel\.app$/]  // Allow Vercel domains
+      : "http://localhost:3000",
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 app.use(express.json());
@@ -111,16 +112,20 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files
-app.use(express.static(path.join(__dirname, "public")));
-app.use('/src/components', express.static(path.join(__dirname, 'src/components')));
-app.use("/css", express.static(path.join(__dirname, "css")));
-app.use("/assets", express.static(path.join(__dirname, "Assets")));
-app.use("/viewcart", express.static(path.join(__dirname, "viewCart")));
-app.use("/checkout", express.static(path.join(__dirname, "checkOut")));
-app.use("/signing", express.static(path.join(__dirname, "Signing")));
-app.use("/aboutus", express.static(path.join(__dirname, "aboutUs")));
-app.use("/confirmation", express.static(path.join(__dirname, "confirmation")));
+// Static files with caching for production
+const staticOptions = process.env.NODE_ENV === 'production' 
+  ? { maxAge: '1d', etag: true }
+  : {};
+
+app.use(express.static(path.join(__dirname, "public"), staticOptions));
+app.use('/src/components', express.static(path.join(__dirname, 'src/components'), staticOptions));
+app.use("/css", express.static(path.join(__dirname, "css"), staticOptions));
+app.use("/assets", express.static(path.join(__dirname, "assets"), staticOptions)); // Note: Changed to lowercase "assets"
+app.use("/viewcart", express.static(path.join(__dirname, "viewCart"), staticOptions));
+app.use("/checkout", express.static(path.join(__dirname, "checkOut"), staticOptions));
+app.use("/signing", express.static(path.join(__dirname, "signing"), staticOptions)); // Note: Changed to lowercase "signing"
+app.use("/aboutus", express.static(path.join(__dirname, "aboutUs"), staticOptions));
+app.use("/confirmation", express.static(path.join(__dirname, "confirmation"), staticOptions));
 
 app.use((req, res, next) => {
   if (req.url.startsWith("/api")) return next();
@@ -263,26 +268,37 @@ app.use((err, req, res, next) => {
 });
 
 const startServer = async () => {
-  try {
-    const connected = await testConnection();
-    if (!connected) {
-      console.error("Failed to connect to MySQL database");
-      process.exit(1);
+  let retries = 5;
+  
+  while (retries) {
+    try {
+      const connected = await testConnection();
+      if (!connected) {
+        throw new Error("Database connection test failed");
+      }
+      
+      app.set("strict routing", true);
+      app.set("case sensitive routing", true);
+
+      app.listen(PORT, () => {
+        console.log(
+          `Server running in ${
+            process.env.NODE_ENV || "development"
+          } mode on port ${PORT}`
+        );
+      });
+      
+      break; // Successfully connected and started server
+    } catch (error) {
+      console.error(`Database connection attempt failed (${retries} retries left):`, error);
+      retries -= 1;
+      if (!retries) {
+        console.error("Failed to connect to MySQL database after multiple attempts");
+        process.exit(1);
+      }
+      // Wait 5 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
-
-    app.set("strict routing", true);
-    app.set("case sensitive routing", true);
-
-    app.listen(PORT, () => {
-      console.log(
-        `Server running in ${
-          process.env.NODE_ENV || "development"
-        } mode on port ${PORT}`
-      );
-    });
-  } catch (error) {
-    console.error("Error starting server:", error);
-    process.exit(1);
   }
 };
 

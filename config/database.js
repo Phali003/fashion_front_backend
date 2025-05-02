@@ -16,18 +16,31 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 3306,
+  
+  // Serverless optimizations
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: process.env.NODE_ENV === 'production' ? 5 : 10, // Reduced for serverless
   queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  connectTimeout: 60000,
-  acquireTimeout: 60000,
-  timeout: 60000,
+  enableKeepAlive: process.env.NODE_ENV !== 'production', // Disabled for serverless
+  keepAliveInitialDelay: process.env.NODE_ENV === 'production' ? 30000 : 0,
+  
+  // Timeout configurations (shorter for serverless)
+  connectTimeout: 20000, // 20 seconds
+  acquireTimeout: 20000, // 20 seconds
+  timeout: 30000, // 30 seconds
+  
+  // SSL configuration for production cloud databases
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: true
+  } : undefined,
+  
+  // Performance optimizations
   debug: false, // Disable debug for production
   trace: false, // Disable trace for production
   multipleStatements: false,
-  dateStrings: true
+  dateStrings: true,
+  supportBigNumbers: true,
+  bigNumberStrings: true
 });
 
 // Add connection error handler
@@ -283,11 +296,15 @@ const directQuery = async (sql, params) => {
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       port: process.env.DB_PORT || 3306,
-      connectTimeout: 10000,
-      timeout: 60000,
-      debug: process.env.DB_DEBUG === 'true',
+      connectTimeout: 20000,
+      timeout: 30000,
+      debug: process.env.DB_DEBUG === 'true' && process.env.NODE_ENV !== 'production',
       supportBigNumbers: true,
-      bigNumberStrings: true
+      bigNumberStrings: true,
+      // SSL configuration for production cloud databases
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: true
+      } : undefined
     });
     
     console.log('Direct connection established for query');
